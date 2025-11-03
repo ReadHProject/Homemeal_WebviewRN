@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@expo/metro-config": "^54.0.8",
+    "@expo/webpack-config": "^19.0.1",
     "expo": "^54.0.21",
     "expo-cli": "^6.3.12",
     "expo-intent-launcher": "~13.0.7",
