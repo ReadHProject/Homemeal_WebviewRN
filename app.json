@@ -7,7 +7,7 @@
     "icon": "./assets/homewhitelogo.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/homewhitelogo.png",      
+      "image": "./assets/splash-4096-4096.png",      
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"                     
     },
@@ -22,7 +22,7 @@
       ],
       "package": "com.homemeal.store",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/homewhitelogo.png",
+        "foregroundImage": "./assets/icon-1024-1024.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true

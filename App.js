@@ -7,6 +7,8 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
+  Image,
+  Text,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -31,23 +33,56 @@ export default function App() {
     }
   };
 
-  // ✅ Pull to Refresh for WebView
+  // ✅ Pull to Refresh WebView
   const onRefresh = () => {
     setRefreshing(true);
     webViewRef.current?.reload();
-    setTimeout(() => setRefreshing(false), 800); // smooth refresh
+    setTimeout(() => setRefreshing(false), 800);
   };
+
+  // ✅ Custom Loading Screen (Bigger + Centered + Logo)
+  const LoadingScreen = () => (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#ffffff",
+      }}
+    >
+      {/* Logo */}
+      <Image
+        source={require("./assets/homewhitelogo.png")}
+        style={{ width: 120, height: 120, marginBottom: 20 }}
+        resizeMode="contain"
+      />
+
+      {/* Bigger Activity Indicator */}
+      <ActivityIndicator size={60} color="#FF6F00" />
+
+      {/* Loading text */}
+      <Text
+        style={{
+          marginTop: 15,
+          color: "#555",
+          fontSize: 16,
+          fontWeight: "500",
+        }}
+      >
+        Cooking something delicious...
+      </Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
-      {/* ✅ Status bar setup */}
       <StatusBar
         translucent
         backgroundColor="transparent"
         barStyle="dark-content"
       />
 
-      {/* ✅ Prevents content overlapping status bar */}
+      {/* ✅ Content starts below status bar on Android */}
       <View
         style={{
           flex: 1,
@@ -58,15 +93,12 @@ export default function App() {
           ref={webViewRef}
           source={{ uri: "https://homemeal.store" }}
           startInLoadingState={true}
+          renderLoading={LoadingScreen}
           geolocationEnabled={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}
           allowFileAccess={true}
           allowUniversalAccessFromFileURLs={true}
-          renderLoading={() => (
-            <ActivityIndicator size="large" style={{ flex: 1 }} />
-          )}
-          // ✅ Pull-to-refresh works on iOS (Android uses built-in refresh)
           refreshControl={
             Platform.OS === "ios" && (
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
