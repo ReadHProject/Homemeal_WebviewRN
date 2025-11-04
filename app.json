@@ -4,13 +4,12 @@
     "slug": "Homemeal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/homewhitelogo.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/homewhitelogo.png",      
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff"                     
     },
     "ios": {
       "supportsTablet": true
@@ -23,7 +22,7 @@
       ],
       "package": "com.homemeal.store",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/homewhitelogo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true
