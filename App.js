@@ -9,6 +9,8 @@ import {
   RefreshControl,
   Image,
   Text,
+  BackHandler,
+  ToastAndroid, // ✅ Android Toast
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -17,12 +19,14 @@ import Constants from "expo-constants";
 export default function App() {
   const webViewRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [exitApp, setExitApp] = useState(false); // ✅ Tracks double back press
 
+  // ✅ Ask for GPS Permission
   useEffect(() => {
     requestLocationPermission();
   }, []);
 
-  // ✅ Ask for GPS Permission
   const requestLocationPermission = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
@@ -33,14 +37,38 @@ export default function App() {
     }
   };
 
-  // ✅ Pull to Refresh WebView
+  // ✅ Handle Android Back Button + Double Press Exit
+  useEffect(() => {
+    const backAction = () => {
+      if (canGoBack && webViewRef.current) {
+        webViewRef.current.goBack(); // Go back inside the WebView
+        return true;
+      }
+      if (!exitApp) {
+        setExitApp(true);
+        ToastAndroid.show("Press again to exit", ToastAndroid.SHORT);
+        setTimeout(() => setExitApp(false), 2000); // Reset back button timer in 2 seconds
+        return true;
+      }
+      BackHandler.exitApp(); // Exit the app
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+    return () => backHandler.remove();
+  }, [canGoBack, exitApp]);
+
+  // ✅ Pull to Refresh
   const onRefresh = () => {
     setRefreshing(true);
     webViewRef.current?.reload();
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // ✅ Custom Loading Screen (Bigger + Centered + Logo)
+  // ✅ Custom Loading Screen (logo + loader + text)
   const LoadingScreen = () => (
     <View
       style={{
@@ -50,17 +78,12 @@ export default function App() {
         backgroundColor: "#ffffff",
       }}
     >
-      {/* Logo */}
       <Image
         source={require("./assets/homewhitelogo.png")}
         style={{ width: 120, height: 120, marginBottom: 20 }}
         resizeMode="contain"
       />
-
-      {/* Bigger Activity Indicator */}
       <ActivityIndicator size={60} color="#FF6F00" />
-
-      {/* Loading text */}
       <Text
         style={{
           marginTop: 15,
@@ -81,8 +104,6 @@ export default function App() {
         backgroundColor="transparent"
         barStyle="dark-content"
       />
-
-      {/* ✅ Content starts below status bar on Android */}
       <View
         style={{
           flex: 1,
@@ -94,6 +115,9 @@ export default function App() {
           source={{ uri: "https://homemeal.store" }}
           startInLoadingState={true}
           renderLoading={LoadingScreen}
+          onNavigationStateChange={(navState) =>
+            setCanGoBack(navState.canGoBack)
+          }
           geolocationEnabled={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}
