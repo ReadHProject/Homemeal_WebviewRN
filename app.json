@@ -4,7 +4,7 @@
     "slug": "Homemeal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logocrop.png",
+    "icon": "./assets/blanksplash.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/homewhitelogo.png", 
