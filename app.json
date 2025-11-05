@@ -4,10 +4,10 @@
     "slug": "Homemeal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/blanksplash.png",
+    "icon": "./assets/newdaimentionsplash.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/blanksplash.png", 
+      "image": "./assets/newdaimentionsplash.png", 
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/blanksplash.png",
+        "foregroundImage": "./assets/newdaimentionsplash.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
