@@ -7,7 +7,7 @@
     "icon": "./assets/blanksplash.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/homewhitelogo.png", 
+      "image": "./assets/blanksplash.png", 
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/homewhitelogo.png",
+        "foregroundImage": "./assets/blanksplash.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
