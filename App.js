@@ -6,12 +6,10 @@ import {
   Alert,
   StatusBar,
   Platform,
-  RefreshControl,
   Image,
   Text,
   BackHandler,
   ToastAndroid,
-  ScrollView,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -20,12 +18,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function App() {
   const webViewRef = useRef(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
   const [exitApp, setExitApp] = useState(false);
-  const [firstLaunch, setFirstLaunch] = useState(null); // ✅ To detect first time launch
+  const [firstLaunch, setFirstLaunch] = useState(null);
 
-  // ✅ Check first-time launch
+  // ✅ Detect first-time launch
   useEffect(() => {
     const checkFirstLaunch = async () => {
       const value = await AsyncStorage.getItem("hasLaunched");
@@ -50,7 +47,7 @@ export default function App() {
     }
   };
 
-  // ✅ Handle Android Back Button
+  // ✅ Android Back Button
   useEffect(() => {
     const backAction = () => {
       if (canGoBack && webViewRef.current) {
@@ -73,14 +70,7 @@ export default function App() {
     return () => backHandler.remove();
   }, [canGoBack, exitApp]);
 
-  // ✅ Pull to Refresh
-  const onRefresh = () => {
-    setRefreshing(true);
-    webViewRef.current?.reload();
-    setTimeout(() => setRefreshing(false), 800);
-  };
-
-  // ✅ Splash / First Load Screen
+  // ✅ Custom Splash Screen
   const FirstLaunchScreen = () => (
     <View
       style={{
@@ -109,10 +99,10 @@ export default function App() {
     </View>
   );
 
-  // ⛔ Prevent flicker until status is known
+  // ⛔ Avoid flicker until we know if first launch
   if (firstLaunch === null) return null;
 
-  // ✅ Show splash only on first launch for 2 seconds
+  // ✅ Show splash only on first app launch
   if (firstLaunch) {
     setTimeout(() => setFirstLaunch(false), 2000);
     return <FirstLaunchScreen />;
@@ -132,28 +122,20 @@ export default function App() {
           paddingTop: Platform.OS === "android" ? Constants.statusBarHeight : 0,
         }}
       >
-        {/* ✅ ScrollView enables pull-to-refresh on Android */}
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <WebView
+          ref={webViewRef}
+          source={{ uri: "https://homemeal.store" }}
+          startInLoadingState={true}
+          renderLoading={FirstLaunchScreen}
+          onNavigationStateChange={(navState) =>
+            setCanGoBack(navState.canGoBack)
           }
-        >
-          <WebView
-            ref={webViewRef}
-            source={{ uri: "https://homemeal.store" }}
-            startInLoadingState={true}
-            renderLoading={FirstLaunchScreen} // only shows on refresh, not first launch
-            onNavigationStateChange={(navState) =>
-              setCanGoBack(navState.canGoBack)
-            }
-            geolocationEnabled={true}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            allowFileAccess={true}
-            allowUniversalAccessFromFileURLs={true}
-          />
-        </ScrollView>
+          geolocationEnabled={true}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+        />
       </View>
     </SafeAreaView>
   );
