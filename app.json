@@ -4,10 +4,10 @@
     "slug": "Homemeal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logocrop.png",
+    "icon": "./assets/hmlogoorangetransparent.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/logocrop.png", 
+      "image": "./assets/hmlogoorangetransparent.png", 
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logocrop.png",
+        "foregroundImage": "./assets/hmlogoorangetransparent.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
