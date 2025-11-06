@@ -10,20 +10,33 @@ import {
   Image,
   Text,
   BackHandler,
-  ToastAndroid, // ✅ Android Toast
+  ToastAndroid,
+  ScrollView,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function App() {
   const webViewRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
   const [canGoBack, setCanGoBack] = useState(false);
-  const [exitApp, setExitApp] = useState(false); // ✅ Tracks double back press
+  const [exitApp, setExitApp] = useState(false);
+  const [firstLaunch, setFirstLaunch] = useState(null); // ✅ To detect first time launch
 
-  // ✅ Ask for GPS Permission
+  // ✅ Check first-time launch
   useEffect(() => {
+    const checkFirstLaunch = async () => {
+      const value = await AsyncStorage.getItem("hasLaunched");
+      if (value === null) {
+        await AsyncStorage.setItem("hasLaunched", "true");
+        setFirstLaunch(true);
+      } else {
+        setFirstLaunch(false);
+      }
+    };
+    checkFirstLaunch();
     requestLocationPermission();
   }, []);
 
@@ -37,23 +50,22 @@ export default function App() {
     }
   };
 
-  // ✅ Handle Android Back Button + Double Press Exit
+  // ✅ Handle Android Back Button
   useEffect(() => {
     const backAction = () => {
       if (canGoBack && webViewRef.current) {
-        webViewRef.current.goBack(); // Go back inside the WebView
+        webViewRef.current.goBack();
         return true;
       }
       if (!exitApp) {
         setExitApp(true);
         ToastAndroid.show("Press again to exit", ToastAndroid.SHORT);
-        setTimeout(() => setExitApp(false), 2000); // Reset back button timer in 2 seconds
+        setTimeout(() => setExitApp(false), 2000);
         return true;
       }
-      BackHandler.exitApp(); // Exit the app
+      BackHandler.exitApp();
       return true;
     };
-
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
@@ -68,8 +80,8 @@ export default function App() {
     setTimeout(() => setRefreshing(false), 800);
   };
 
-  // ✅ Custom Loading Screen (logo + loader + text)
-  const LoadingScreen = () => (
+  // ✅ Splash / First Load Screen
+  const FirstLaunchScreen = () => (
     <View
       style={{
         flex: 1,
@@ -97,6 +109,15 @@ export default function App() {
     </View>
   );
 
+  // ⛔ Prevent flicker until status is known
+  if (firstLaunch === null) return null;
+
+  // ✅ Show splash only on first launch for 2 seconds
+  if (firstLaunch) {
+    setTimeout(() => setFirstLaunch(false), 2000);
+    return <FirstLaunchScreen />;
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <StatusBar
@@ -104,31 +125,35 @@ export default function App() {
         backgroundColor="transparent"
         barStyle="dark-content"
       />
+
       <View
         style={{
           flex: 1,
           paddingTop: Platform.OS === "android" ? Constants.statusBarHeight : 0,
         }}
       >
-        <WebView
-          ref={webViewRef}
-          source={{ uri: "https://homemeal.store" }}
-          startInLoadingState={true}
-          renderLoading={LoadingScreen}
-          onNavigationStateChange={(navState) =>
-            setCanGoBack(navState.canGoBack)
-          }
-          geolocationEnabled={true}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          allowFileAccess={true}
-          allowUniversalAccessFromFileURLs={true}
+        {/* ✅ ScrollView enables pull-to-refresh on Android */}
+        <ScrollView
+          contentContainerStyle={{ flex: 1 }}
           refreshControl={
-            Platform.OS === "ios" && (
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            )
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-        />
+        >
+          <WebView
+            ref={webViewRef}
+            source={{ uri: "https://homemeal.store" }}
+            startInLoadingState={true}
+            renderLoading={FirstLaunchScreen} // only shows on refresh, not first launch
+            onNavigationStateChange={(navState) =>
+              setCanGoBack(navState.canGoBack)
+            }
+            geolocationEnabled={true}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            allowFileAccess={true}
+            allowUniversalAccessFromFileURLs={true}
+          />
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
