@@ -10,7 +10,8 @@ import {
   Text,
   BackHandler,
   ToastAndroid,
-  Linking,
+  RefreshControl,
+  ScrollView,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -22,9 +23,10 @@ export default function App() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [exitApp, setExitApp] = useState(false);
   const [firstLaunch, setFirstLaunch] = useState(null);
-  const [paymentLink, setPaymentLink] = useState(null); // ✅ for Cashfree or PhonePe
+  const [refreshing, setRefreshing] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const [paymentLink, setPaymentLink] = useState(null);
 
-  // ✅ Detect first-time launch
   useEffect(() => {
     const checkFirstLaunch = async () => {
       const value = await AsyncStorage.getItem("hasLaunched");
@@ -39,7 +41,6 @@ export default function App() {
     requestLocationPermission();
   }, []);
 
-  // ✅ Request location permission
   const requestLocationPermission = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
@@ -50,7 +51,7 @@ export default function App() {
     }
   };
 
-  // ✅ Android Back Button handling
+  // ✅ Back handler
   useEffect(() => {
     const backAction = () => {
       if (canGoBack && webViewRef.current) {
@@ -73,14 +74,13 @@ export default function App() {
     return () => backHandler.remove();
   }, [canGoBack, exitApp]);
 
-  // ✅ Custom splash screen
   const FirstLaunchScreen = () => (
     <View
       style={{
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#fff",
       }}
     >
       <Image
@@ -102,124 +102,80 @@ export default function App() {
     </View>
   );
 
-  // ⛔ Avoid flicker until we know if first launch
-  if (firstLaunch === null) return null;
+  // ✅ Refresh handler
+  const onRefresh = () => {
+    if (isAtTop) {
+      setRefreshing(true);
+      webViewRef.current?.reload();
+      setTimeout(() => setRefreshing(false), 1200);
+    }
+  };
 
-  // ✅ Show splash only on first app launch
+  // ✅ JS scroll listener to detect top position
+  const injectedScrollScript = `
+    window.addEventListener('scroll', function() {
+      const isTop = window.scrollY <= 0;
+      window.ReactNativeWebView.postMessage(JSON.stringify({ isTop }));
+    });
+    true;
+  `;
+
+  const handleMessage = (event) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data?.isTop !== undefined) {
+        setIsAtTop(data.isTop);
+      }
+    } catch (e) {
+      console.log("Scroll message parse failed:", e);
+    }
+  };
+
+  const handleNavigation = (navEvent) => {
+    const url = navEvent?.url || navEvent?.nativeEvent?.url;
+    if (!url) return true;
+
+    if (url.startsWith("upi://") || url.startsWith("intent://")) {
+      try {
+        Linking.openURL(url);
+      } catch (error) {
+        Alert.alert("Error", "Unable to open UPI app");
+      }
+      return false;
+    }
+
+    return true;
+  };
+
+  // ⛔ Splash control
+  if (firstLaunch === null) return null;
   if (firstLaunch) {
     setTimeout(() => setFirstLaunch(false), 2000);
     return <FirstLaunchScreen />;
   }
 
-  // ✅ Unified Payment Handler (PhonePe + Cashfree)
-  const handleNavigation = (navEvent) => {
-    const url = navEvent?.url || navEvent?.nativeEvent?.url;
-    if (!url) return true;
-
-    // console.log("➡ Navigating to:", url);
-
-    // 🔹 Detect Cashfree/PhonePe checkout links
-    if (
-      url.startsWith("https://api.cashfree.com/checkout") ||
-      url.startsWith("https://payments.cashfree.com") ||
-      url.startsWith("https://sandbox.cashfree.com")
-    ) {
-      console.log("🟢 Cashfree Checkout page detected");
-      return true;
-    }
-
-    // 🔹 Handle UPI / Intent URLs for both gateways
-    if (url.startsWith("upi://") || url.startsWith("intent://")) {
-      try {
-        if (url.startsWith("intent://")) {
-          const fallbackMatch = url.match(/S\.browser_fallback_url=([^;]+)/);
-          if (fallbackMatch && fallbackMatch[1]) {
-            const fallbackUrl = decodeURIComponent(fallbackMatch[1]);
-            console.log("➡ Opening fallback URL:", fallbackUrl);
-            Linking.openURL(fallbackUrl);
-            return false;
-          }
-        }
-        Linking.openURL(url);
-      } catch (error) {
-        console.warn("Error opening UPI intent:", error);
-        Alert.alert("Error", "Unable to open UPI app. Please try again.");
-      }
-      return false; // prevent WebView from blocking
-    }
-
-    // 🔹 Handle Cashfree Return URL
-    if (url.includes("/Cashfree/PaymentReturn")) {
-      console.log("✅ Cashfree Return URL triggered");
-      setTimeout(() => {
-        if (url.toLowerCase().includes("success")) {
-          Alert.alert(
-            "Cashfree Payment Successful",
-            "Your transaction was successful!"
-          );
-        } else if (url.toLowerCase().includes("failed")) {
-          Alert.alert(
-            "Cashfree Payment Failed",
-            "Payment could not be processed."
-          );
-        } else {
-          Alert.alert("Cashfree Payment Update", "Payment status updated.");
-        }
-      }, 500);
-      return true;
-    }
-
-    // 🔹 Handle Cashfree Notify URL (server-side only)
-    if (url.includes("/Cashfree/PaymentSuccess")) {
-      console.log("ℹ️ Cashfree Payment Notify (handled by server)");
-      return true;
-    }
-
-    // 🔹 Handle PhonePe Return URL
-    if (url.includes("/PhonePe/PaymentStatus")) {
-      console.log("✅ PhonePe Return URL triggered");
-      setTimeout(() => {
-        if (
-          url.toLowerCase().includes("success") ||
-          url.toLowerCase().includes("completed")
-        ) {
-          Alert.alert(
-            "PhonePe Payment Successful",
-            "Your PhonePe transaction was completed successfully!"
-          );
-        } else if (url.toLowerCase().includes("failed")) {
-          Alert.alert("PhonePe Payment Failed", "Your PhonePe payment failed.");
-        } else {
-          Alert.alert("PhonePe Payment Update", "Payment status updated.");
-        }
-      }, 500);
-      return true;
-    }
-
-    return true; // ✅ always return a boolean
-  };
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <StatusBar
         translucent
         backgroundColor="transparent"
         barStyle="dark-content"
       />
 
-      <View
-        style={{
-          flex: 1,
-          paddingTop: Platform.OS === "android" ? Constants.statusBarHeight : 0,
-        }}
+      <ScrollView
+        contentContainerStyle={{ flex: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            enabled={isAtTop}
+            colors={["#FF6F00"]}
+          />
+        }
       >
         <WebView
           ref={webViewRef}
-          source={{
-            uri: paymentLink
-              ? paymentLink // ✅ dynamically load payment link (Cashfree/PhonePe)
-              : "https://homemeal.store",
-          }}
+          source={{ uri: paymentLink ? paymentLink : "https://homemeal.store" }}
           startInLoadingState={true}
           renderLoading={FirstLaunchScreen}
           onShouldStartLoadWithRequest={handleNavigation}
@@ -233,9 +189,12 @@ export default function App() {
           geolocationEnabled={true}
           allowFileAccess={true}
           allowUniversalAccessFromFileURLs={true}
+          onMessage={handleMessage}
+          injectedJavaScript={injectedScrollScript}
           userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+          style={{ flex: 1 }}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
