@@ -22,6 +22,7 @@ export default function App() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [exitApp, setExitApp] = useState(false);
   const [firstLaunch, setFirstLaunch] = useState(null);
+  const [paymentLink, setPaymentLink] = useState(null); // ✅ for Cashfree or PhonePe
 
   // ✅ Detect first-time launch
   useEffect(() => {
@@ -110,38 +111,92 @@ export default function App() {
     return <FirstLaunchScreen />;
   }
 
-  // ✅ Handle UPI, Intent links, and Payment Status redirects
-  const handleNavigation = (event) => {
-    const url = event.url;
+  // ✅ Unified Payment Handler (PhonePe + Cashfree)
+  const handleNavigation = (navEvent) => {
+    const url = navEvent?.url || navEvent?.nativeEvent?.url;
+    if (!url) return true;
 
-    // 🔹 Detect and open UPI / Intent links externally
+    // console.log("➡ Navigating to:", url);
+
+    // 🔹 Detect Cashfree/PhonePe checkout links
+    if (
+      url.startsWith("https://api.cashfree.com/checkout") ||
+      url.startsWith("https://payments.cashfree.com") ||
+      url.startsWith("https://sandbox.cashfree.com")
+    ) {
+      console.log("🟢 Cashfree Checkout page detected");
+      return true;
+    }
+
+    // 🔹 Handle UPI / Intent URLs for both gateways
     if (url.startsWith("upi://") || url.startsWith("intent://")) {
       try {
+        if (url.startsWith("intent://")) {
+          const fallbackMatch = url.match(/S\.browser_fallback_url=([^;]+)/);
+          if (fallbackMatch && fallbackMatch[1]) {
+            const fallbackUrl = decodeURIComponent(fallbackMatch[1]);
+            console.log("➡ Opening fallback URL:", fallbackUrl);
+            Linking.openURL(fallbackUrl);
+            return false;
+          }
+        }
         Linking.openURL(url);
       } catch (error) {
-        Alert.alert("Error", "Unable to open UPI app");
+        console.warn("Error opening UPI intent:", error);
+        Alert.alert("Error", "Unable to open UPI app. Please try again.");
       }
-      return false; // Prevent WebView from blocking it
+      return false; // prevent WebView from blocking
     }
 
-    // 🔹 Detect when user is redirected back after payment
+    // 🔹 Handle Cashfree Return URL
+    if (url.includes("/Cashfree/PaymentReturn")) {
+      console.log("✅ Cashfree Return URL triggered");
+      setTimeout(() => {
+        if (url.toLowerCase().includes("success")) {
+          Alert.alert(
+            "Cashfree Payment Successful",
+            "Your transaction was successful!"
+          );
+        } else if (url.toLowerCase().includes("failed")) {
+          Alert.alert(
+            "Cashfree Payment Failed",
+            "Payment could not be processed."
+          );
+        } else {
+          Alert.alert("Cashfree Payment Update", "Payment status updated.");
+        }
+      }, 500);
+      return true;
+    }
+
+    // 🔹 Handle Cashfree Notify URL (server-side only)
+    if (url.includes("/Cashfree/PaymentSuccess")) {
+      console.log("ℹ️ Cashfree Payment Notify (handled by server)");
+      return true;
+    }
+
+    // 🔹 Handle PhonePe Return URL
     if (url.includes("/PhonePe/PaymentStatus")) {
-      if (
-        url.toLowerCase().includes("success") ||
-        url.toLowerCase().includes("completed")
-      ) {
-        Alert.alert(
-          "Payment Successful",
-          "Your transaction was completed successfully!"
-        );
-      } else if (url.toLowerCase().includes("failed")) {
-        Alert.alert("Payment Failed", "Your payment could not be processed.");
-      } else {
-        Alert.alert("Payment Update", "Your payment status has been updated.");
-      }
+      console.log("✅ PhonePe Return URL triggered");
+      setTimeout(() => {
+        if (
+          url.toLowerCase().includes("success") ||
+          url.toLowerCase().includes("completed")
+        ) {
+          Alert.alert(
+            "PhonePe Payment Successful",
+            "Your PhonePe transaction was completed successfully!"
+          );
+        } else if (url.toLowerCase().includes("failed")) {
+          Alert.alert("PhonePe Payment Failed", "Your PhonePe payment failed.");
+        } else {
+          Alert.alert("PhonePe Payment Update", "Payment status updated.");
+        }
+      }, 500);
+      return true;
     }
 
-    return true; // Allow other navigations normally
+    return true; // ✅ always return a boolean
   };
 
   return (
@@ -160,20 +215,25 @@ export default function App() {
       >
         <WebView
           ref={webViewRef}
-          source={{ uri: "https://homemeal.store" }}
+          source={{
+            uri: paymentLink
+              ? paymentLink // ✅ dynamically load payment link (Cashfree/PhonePe)
+              : "https://homemeal.store",
+          }}
           startInLoadingState={true}
           renderLoading={FirstLaunchScreen}
+          onShouldStartLoadWithRequest={handleNavigation}
           onNavigationStateChange={(navState) =>
             setCanGoBack(navState.canGoBack)
           }
-          onShouldStartLoadWithRequest={handleNavigation}
           originWhitelist={["*"]}
           mixedContentMode="always"
-          geolocationEnabled={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          geolocationEnabled={true}
           allowFileAccess={true}
           allowUniversalAccessFromFileURLs={true}
+          userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
         />
       </View>
     </SafeAreaView>
