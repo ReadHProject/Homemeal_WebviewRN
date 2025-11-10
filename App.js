@@ -12,10 +12,10 @@ import {
   ToastAndroid,
   RefreshControl,
   ScrollView,
+  Linking,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
-import Constants from "expo-constants";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function App() {
@@ -51,7 +51,7 @@ export default function App() {
     }
   };
 
-  // ✅ Back handler
+  // ✅ Android Back Button handling
   useEffect(() => {
     const backAction = () => {
       if (canGoBack && webViewRef.current) {
@@ -74,6 +74,7 @@ export default function App() {
     return () => backHandler.remove();
   }, [canGoBack, exitApp]);
 
+  // ✅ Splash Screen
   const FirstLaunchScreen = () => (
     <View
       style={{
@@ -102,7 +103,7 @@ export default function App() {
     </View>
   );
 
-  // ✅ Refresh handler
+  // ✅ Refresh Handler
   const onRefresh = () => {
     if (isAtTop) {
       setRefreshing(true);
@@ -111,7 +112,7 @@ export default function App() {
     }
   };
 
-  // ✅ JS scroll listener to detect top position
+  // ✅ Scroll listener (to detect top for refresh)
   const injectedScrollScript = `
     window.addEventListener('scroll', function() {
       const isTop = window.scrollY <= 0;
@@ -131,6 +132,7 @@ export default function App() {
     }
   };
 
+  // ✅ Handle navigation
   const handleNavigation = (navEvent) => {
     const url = navEvent?.url || navEvent?.nativeEvent?.url;
     if (!url) return true;
@@ -147,54 +149,68 @@ export default function App() {
     return true;
   };
 
-  // ⛔ Splash control
+  // ✅ First Launch Logic
   if (firstLaunch === null) return null;
   if (firstLaunch) {
     setTimeout(() => setFirstLaunch(false), 2000);
     return <FirstLaunchScreen />;
   }
 
+  // ✅ FINAL LAYOUT FIX — NO OVERLAP, NO GAP
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <StatusBar
-        translucent
-        backgroundColor="transparent"
+        translucent={false} // makes sure content is below status bar
+        backgroundColor="#ffffff"
         barStyle="dark-content"
       />
 
-      <ScrollView
-        contentContainerStyle={{ flex: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            enabled={isAtTop}
-            colors={["#FF6F00"]}
-          />
-        }
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#ffffff",
+          paddingTop: Platform.OS === "android" ? 0 : 0, // keep balanced top space
+        }}
       >
-        <WebView
-          ref={webViewRef}
-          source={{ uri: paymentLink ? paymentLink : "https://homemeal.store" }}
-          startInLoadingState={true}
-          renderLoading={FirstLaunchScreen}
-          onShouldStartLoadWithRequest={handleNavigation}
-          onNavigationStateChange={(navState) =>
-            setCanGoBack(navState.canGoBack)
+        <ScrollView
+          contentContainerStyle={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              enabled={isAtTop}
+              colors={["#FF6F00"]}
+            />
           }
-          originWhitelist={["*"]}
-          mixedContentMode="always"
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          geolocationEnabled={true}
-          allowFileAccess={true}
-          allowUniversalAccessFromFileURLs={true}
-          onMessage={handleMessage}
-          injectedJavaScript={injectedScrollScript}
-          userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-          style={{ flex: 1 }}
-        />
-      </ScrollView>
+        >
+          <WebView
+            ref={webViewRef}
+            source={{
+              uri: paymentLink ? paymentLink : "https://homemeal.store",
+            }}
+            startInLoadingState={true}
+            renderLoading={FirstLaunchScreen}
+            onShouldStartLoadWithRequest={handleNavigation}
+            onNavigationStateChange={(navState) =>
+              setCanGoBack(navState.canGoBack)
+            }
+            originWhitelist={["*"]}
+            mixedContentMode="always"
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            geolocationEnabled={true}
+            allowFileAccess={true}
+            allowUniversalAccessFromFileURLs={true}
+            onMessage={handleMessage}
+            injectedJavaScript={injectedScrollScript}
+            userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            style={{
+              flex: 1,
+              backgroundColor: "#ffffff",
+            }}
+          />
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
