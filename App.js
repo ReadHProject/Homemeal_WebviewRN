@@ -10,6 +10,7 @@ import {
   Text,
   BackHandler,
   ToastAndroid,
+  Linking,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
@@ -37,6 +38,7 @@ export default function App() {
     requestLocationPermission();
   }, []);
 
+  // ✅ Request location permission
   const requestLocationPermission = async () => {
     let { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== "granted") {
@@ -47,7 +49,7 @@ export default function App() {
     }
   };
 
-  // ✅ Android Back Button
+  // ✅ Android Back Button handling
   useEffect(() => {
     const backAction = () => {
       if (canGoBack && webViewRef.current) {
@@ -70,7 +72,7 @@ export default function App() {
     return () => backHandler.remove();
   }, [canGoBack, exitApp]);
 
-  // ✅ Custom Splash Screen
+  // ✅ Custom splash screen
   const FirstLaunchScreen = () => (
     <View
       style={{
@@ -108,6 +110,40 @@ export default function App() {
     return <FirstLaunchScreen />;
   }
 
+  // ✅ Handle UPI, Intent links, and Payment Status redirects
+  const handleNavigation = (event) => {
+    const url = event.url;
+
+    // 🔹 Detect and open UPI / Intent links externally
+    if (url.startsWith("upi://") || url.startsWith("intent://")) {
+      try {
+        Linking.openURL(url);
+      } catch (error) {
+        Alert.alert("Error", "Unable to open UPI app");
+      }
+      return false; // Prevent WebView from blocking it
+    }
+
+    // 🔹 Detect when user is redirected back after payment
+    if (url.includes("/PhonePe/PaymentStatus")) {
+      if (
+        url.toLowerCase().includes("success") ||
+        url.toLowerCase().includes("completed")
+      ) {
+        Alert.alert(
+          "Payment Successful",
+          "Your transaction was completed successfully!"
+        );
+      } else if (url.toLowerCase().includes("failed")) {
+        Alert.alert("Payment Failed", "Your payment could not be processed.");
+      } else {
+        Alert.alert("Payment Update", "Your payment status has been updated.");
+      }
+    }
+
+    return true; // Allow other navigations normally
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
       <StatusBar
@@ -130,6 +166,9 @@ export default function App() {
           onNavigationStateChange={(navState) =>
             setCanGoBack(navState.canGoBack)
           }
+          onShouldStartLoadWithRequest={handleNavigation}
+          originWhitelist={["*"]}
+          mixedContentMode="always"
           geolocationEnabled={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}

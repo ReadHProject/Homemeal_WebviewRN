@@ -7,7 +7,7 @@
     "icon": "./assets/hmlogoorangetransparent.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/hmlogoorangetransparent.png", 
+      "image": "./assets/hmlogoorangetransparent.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -24,6 +24,32 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ],
+
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            { "scheme": "upi" },
+            { "scheme": "intent" },
+            { "scheme": "phonepe" },
+            { "scheme": "paytm" },
+            { "scheme": "tez" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "homemeal.store",
+              "pathPrefix": "/PhonePe/PaymentStatus"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+
       "package": "com.homemeal.store",
       "edgeToEdgeEnabled": true
     },
