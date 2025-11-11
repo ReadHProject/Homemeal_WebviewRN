@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Homemeal",
-    "slug": "Homemeal",
+    "slug": "homemeal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/hmlogoorangetransparent.png",
@@ -24,18 +24,30 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ],
-
       "intentFilters": [
         {
           "action": "VIEW",
           "data": [
-            { "scheme": "upi" },
-            { "scheme": "intent" },
-            { "scheme": "phonepe" },
-            { "scheme": "paytm" },
-            { "scheme": "tez" }
+            {
+              "scheme": "upi"
+            },
+            {
+              "scheme": "intent"
+            },
+            {
+              "scheme": "phonepe"
+            },
+            {
+              "scheme": "paytm"
+            },
+            {
+              "scheme": "tez"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         },
         {
           "action": "VIEW",
@@ -46,10 +58,12 @@
               "pathPrefix": "/PhonePe/PaymentStatus"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
-
       "package": "com.homemeal.store",
       "edgeToEdgeEnabled": true
     },
@@ -58,8 +72,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "d3286deb-3c8b-485c-99f0-1e04a565c85c"
+        "projectId": "f062cff7-6008-4f69-9d8a-0cfd5eb97633"
       }
-    }
+    },
+    "owner": "adankyserver3"
   }
 }

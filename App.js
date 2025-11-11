@@ -194,7 +194,8 @@ function MainApp() {
         flex: 1,
         backgroundColor: "#ffffff",
         paddingTop: Platform.OS === "android" ? 0 : insets.top,
-        paddingBottom: bottomPadding, // ✅ fixed stable bottom padding
+        // ✅ Smart bottom padding: use inset if non-zero, otherwise minimal safe 4 px
+        paddingBottom: insets.bottom > 0 ? insets.bottom - 50 : 4,
       }}
     >
       <StatusBar
