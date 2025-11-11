@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  SafeAreaView,
   View,
   ActivityIndicator,
   Alert,
@@ -13,12 +12,18 @@ import {
   RefreshControl,
   ScrollView,
   Linking,
+  AppState,
 } from "react-native";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function App() {
+function MainApp() {
   const webViewRef = useRef(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [exitApp, setExitApp] = useState(false);
@@ -26,6 +31,21 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [isAtTop, setIsAtTop] = useState(true);
   const [paymentLink, setPaymentLink] = useState(null);
+  const [bottomPadding, setBottomPadding] = useState(0);
+  const insets = useSafeAreaInsets();
+
+  // ✅ Recalculate bottom padding only once (prevent double padding after resume)
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        setTimeout(() => {
+          // Limit inset to reasonable max value (e.g. 24px)
+          setBottomPadding(Math.min(insets.bottom || 0, 24));
+        }, 300);
+      }
+    });
+    return () => subscription.remove();
+  }, [insets.bottom]);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
@@ -51,7 +71,7 @@ export default function App() {
     }
   };
 
-  // ✅ Android Back Button handling
+  // ✅ Back handler
   useEffect(() => {
     const backAction = () => {
       if (canGoBack && webViewRef.current) {
@@ -103,7 +123,7 @@ export default function App() {
     </View>
   );
 
-  // ✅ Refresh Handler
+  // ✅ Refresh handler
   const onRefresh = () => {
     if (isAtTop) {
       setRefreshing(true);
@@ -112,7 +132,7 @@ export default function App() {
     }
   };
 
-  // ✅ Scroll listener (to detect top for refresh)
+  // ✅ Scroll detection
   const injectedScrollScript = `
     window.addEventListener('scroll', function() {
       const isTop = window.scrollY <= 0;
@@ -127,20 +147,31 @@ export default function App() {
       if (data?.isTop !== undefined) {
         setIsAtTop(data.isTop);
       }
-    } catch (e) {
-      console.log("Scroll message parse failed:", e);
-    }
+    } catch {}
   };
 
-  // ✅ Handle navigation
+  // ✅ Dynamic StatusBar color
   const handleNavigation = (navEvent) => {
     const url = navEvent?.url || navEvent?.nativeEvent?.url;
     if (!url) return true;
 
+    if (
+      url.includes("/dash/subscription") ||
+      url.includes("/payment") ||
+      url.includes("PhonePe") ||
+      url.includes("Cashfree")
+    ) {
+      StatusBar.setBackgroundColor("#FF6F00");
+      StatusBar.setBarStyle("light-content");
+    } else {
+      StatusBar.setBackgroundColor("#ffffff");
+      StatusBar.setBarStyle("dark-content");
+    }
+
     if (url.startsWith("upi://") || url.startsWith("intent://")) {
       try {
         Linking.openURL(url);
-      } catch (error) {
+      } catch {
         Alert.alert("Error", "Unable to open UPI app");
       }
       return false;
@@ -156,61 +187,69 @@ export default function App() {
     return <FirstLaunchScreen />;
   }
 
-  // ✅ FINAL LAYOUT FIX — NO OVERLAP, NO GAP
+  // ✅ Final Perfect Layout — consistent top/bottom spacing even after switching apps
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#ffffff" }}>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: "#ffffff",
+        paddingTop: Platform.OS === "android" ? 0 : insets.top,
+        paddingBottom: bottomPadding, // ✅ fixed stable bottom padding
+      }}
+    >
       <StatusBar
-        translucent={false} // makes sure content is below status bar
-        backgroundColor="#ffffff"
+        translucent={true}
+        backgroundColor="transparent"
         barStyle="dark-content"
       />
 
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "#ffffff",
-          paddingTop: Platform.OS === "android" ? 0 : 0, // keep balanced top space
-        }}
-      >
-        <ScrollView
-          contentContainerStyle={{ flex: 1 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              enabled={isAtTop}
-              colors={["#FF6F00"]}
-            />
-          }
-        >
-          <WebView
-            ref={webViewRef}
-            source={{
-              uri: paymentLink ? paymentLink : "https://homemeal.store",
-            }}
-            startInLoadingState={true}
-            renderLoading={FirstLaunchScreen}
-            onShouldStartLoadWithRequest={handleNavigation}
-            onNavigationStateChange={(navState) =>
-              setCanGoBack(navState.canGoBack)
-            }
-            originWhitelist={["*"]}
-            mixedContentMode="always"
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            geolocationEnabled={true}
-            allowFileAccess={true}
-            allowUniversalAccessFromFileURLs={true}
-            onMessage={handleMessage}
-            injectedJavaScript={injectedScrollScript}
-            userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
-            style={{
-              flex: 1,
-              backgroundColor: "#ffffff",
-            }}
+      <ScrollView
+        contentContainerStyle={{ flex: 1 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            enabled={isAtTop}
+            colors={["#FF6F00"]}
           />
-        </ScrollView>
-      </View>
+        }
+      >
+        <WebView
+          ref={webViewRef}
+          source={{
+            uri: paymentLink ? paymentLink : "https://homemeal.store",
+          }}
+          startInLoadingState={true}
+          renderLoading={FirstLaunchScreen}
+          onShouldStartLoadWithRequest={handleNavigation}
+          onNavigationStateChange={(navState) => {
+            setCanGoBack(navState.canGoBack);
+            handleNavigation(navState);
+          }}
+          originWhitelist={["*"]}
+          mixedContentMode="always"
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          geolocationEnabled={true}
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+          onMessage={handleMessage}
+          injectedJavaScript={injectedScrollScript}
+          userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+          style={{
+            flex: 1,
+            backgroundColor: "#ffffff",
+          }}
+        />
+      </ScrollView>
     </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainApp />
+    </SafeAreaProvider>
   );
 }
