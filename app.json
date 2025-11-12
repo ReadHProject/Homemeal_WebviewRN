@@ -6,19 +6,37 @@
     "orientation": "portrait",
     "icon": "./assets/hmlogoorangetransparent.png",
     "userInterfaceStyle": "light",
+
     "splash": {
       "image": "./assets/hmlogoorangetransparent.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
+
+    "assetBundlePatterns": ["**/*"],
+
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
+
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.homemeal.store",
+      "buildNumber": "1.0.0"
+    },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/hmlogoorangetransparent.png",
         "backgroundColor": "#ffffff"
       },
+      "versionCode": 1,
       "permissions": [
         "INTERNET",
         "ACCESS_FINE_LOCATION",
@@ -28,26 +46,13 @@
         {
           "action": "VIEW",
           "data": [
-            {
-              "scheme": "upi"
-            },
-            {
-              "scheme": "intent"
-            },
-            {
-              "scheme": "phonepe"
-            },
-            {
-              "scheme": "paytm"
-            },
-            {
-              "scheme": "tez"
-            }
+            { "scheme": "upi" },
+            { "scheme": "intent" },
+            { "scheme": "phonepe" },
+            { "scheme": "paytm" },
+            { "scheme": "tez" }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         },
         {
           "action": "VIEW",
@@ -58,23 +63,28 @@
               "pathPrefix": "/PhonePe/PaymentStatus"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "package": "com.homemeal.store",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "pan"
     },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "extra": {
       "eas": {
         "projectId": "f062cff7-6008-4f69-9d8a-0cfd5eb97633"
+      },
+      "releaseChannel": "production",
+      "updates": {
+        "autoCheck": true
       }
     },
+
     "owner": "adankyserver3"
   }
 }
